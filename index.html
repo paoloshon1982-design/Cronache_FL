@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Cronache del mondo, del vento e del corvo</title>
+
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English&display=swap" rel="stylesheet">
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/turn.js/4.1.0/turn.min.js"></script>
+
+<style>
+body {
+  margin: 0;
+  background: radial-gradient(circle, #1a1a1a, #000);
+  overflow: hidden;
+}
+
+/* LIBRO */
+#book {
+  width: 90vw;
+  height: 90vh;
+  margin: auto;
+}
+
+/* PAGINE */
+.page {
+  background: url("textures/parchment.jpg");
+  background-size: cover;
+  box-shadow: inset 0 0 60px rgba(0,0,0,0.9);
+  border: 1px solid rgba(80,60,30,0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+/* IMMAGINI */
+.page img {
+  max-width: 95%;
+  max-height: 95%;
+  object-fit: contain;
+  filter: contrast(1.05) brightness(0.95);
+}
+
+/* OMBRA CENTRALE */
+#book::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 80px;
+  height: 100%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(0,0,0,0.7), transparent);
+  pointer-events: none;
+}
+
+/* ===== INCISIONE PROFONDA ===== */
+.engraved-deep {
+  font-family: 'IM Fell English', serif;
+  font-size: 2.8em;
+  color: #2a1a10;
+  letter-spacing: 2px;
+  text-align: center;
+  line-height: 1.3;
+
+  text-shadow:
+    3px 3px 2px rgba(0,0,0,0.95),
+    -1px -1px 1px rgba(255,220,150,0.05);
+
+  transform: rotate(-0.8deg);
+  filter: contrast(1.1) brightness(0.9);
+}
+
+/* irregolarità incisione */
+.engraved-deep span {
+  display: inline-block;
+}
+
+.engraved-deep span:nth-child(odd) {
+  transform: rotate(-2deg) translateY(2px);
+}
+
+.engraved-deep span:nth-child(even) {
+  transform: rotate(1.5deg) translateY(-2px);
+}
+
+.engraved-deep span:nth-child(3n) {
+  transform: scale(0.95);
+}
+
+/* copertina più scura */
+.cover {
+  background: #1b120b;
+}
+</style>
+</head>
+
+<body>
+
+<div id="book"></div>
+
+<audio id="flipSound" src="audio/flip.mp3"></audio>
+
+<script>
+const images = [
+  "images/01.jpg",
+  "images/02.jpg",
+  "images/03.jpg"
+];
+
+/* COSTRUZIONE LIBRO */
+const book = $("#book");
+
+/* COPERTINA (temporanea con incisione) */
+book.append(`
+  <div class="page cover">
+    <div class="engraved-deep">
+      ${wrapText("Cronache del mondo, del vento e del corvo")}
+    </div>
+  </div>
+`);
+
+/* PAGINE IMMAGINI */
+images.forEach(src => {
+  const page = $("<div class='page' />");
+  const img = $("<img />").attr("src", src);
+  page.append(img);
+  book.append(page);
+});
+
+/* RETROCOPERTINA */
+book.append(`
+  <div class="page">
+    <div class="engraved-deep">Fine del tomo</div>
+  </div>
+`);
+
+/* INIZIALIZZA FLIPBOOK */
+$("#book").turn({
+  width: window.innerWidth * 0.9,
+  height: window.innerHeight * 0.9,
+  autoCenter: true,
+  display: "double",
+  elevation: 80,
+  gradients: true,
+  when: {
+    turning: function() {
+      document.getElementById("flipSound").play();
+    }
+  }
+});
+
+/* RESPONSIVE */
+$(window).resize(function() {
+  $("#book").turn("size", window.innerWidth * 0.9, window.innerHeight * 0.9);
+});
+
+/* FUNZIONE PER INCISIONE LETTERE */
+function wrapText(text) {
+  return text.split("").map(letter => `<span>${letter}</span>`).join("");
+}
+</script>
+
+</body>
+</html>
