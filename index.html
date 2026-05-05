@@ -52,14 +52,6 @@ body {
   align-items: center;
   gap: 1rem;
 }
-.section-label {
-  color: #cbb78f;
-  font-family: 'IM Fell English', serif;
-  font-size: 0.85rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  opacity: 0.6;
-}
 .section-title {
   color: #cbb78f;
   font-family: 'IM Fell English', serif;
@@ -82,6 +74,33 @@ body {
   font-size: 14px;
   opacity: 0.7;
   pointer-events: none;
+  z-index: 100;
+}
+/* FRECCE NAVIGAZIONE */
+#nav-prev, #nav-next {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(203,183,143,0.15);
+  border: 1px solid rgba(203,183,143,0.3);
+  color: #cbb78f;
+  font-family: 'IM Fell English', serif;
+  font-size: 2rem;
+  width: 48px;
+  height: 80px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 100;
+  border-radius: 4px;
+  transition: background 0.2s;
+  user-select: none;
+}
+#nav-prev { left: 16px; }
+#nav-next { right: 16px; }
+#nav-prev:hover, #nav-next:hover {
+  background: rgba(203,183,143,0.3);
 }
 </style>
 </head>
@@ -93,10 +112,12 @@ body {
 
 <div id="book"></div>
 <div id="status"></div>
+<div id="nav-prev">&#8249;</div>
+<div id="nav-next">&#8250;</div>
 <audio id="flipSound" src="audio/flip.mp3" preload="auto"></audio>
 
 <script>
-/* ── CONFIGURAZIONE SEZIONI ── */
+/* ── CONFIGURAZIONE ── */
 const CHAPTERS = [
   { name: "Gruppo",   from:   2, to:  15 },
   { name: "Appunti",  from:  16, to:  40 },
@@ -124,126 +145,7 @@ function startBook() {
   loadAllChapters(0);
 }
 
-/* ── CARICAMENTO CAPITOLI IN SEQUENZA ── */
+/* ── CARICAMENTO ── */
 function loadAllChapters(idx) {
   if (idx >= CHAPTERS.length) {
-    initBook();
-    return;
-  }
-  const ch = CHAPTERS[idx];
-  // inserisce pagina di separazione sezione
-  pages.push({ type: "section", name: ch.name });
-  loadRange(ch.from, ch.to, () => loadAllChapters(idx + 1));
-}
-
-function loadRange(current, max, onDone) {
-  if (current > max) { onDone(); return; }
-
-  const num = String(current).padStart(2, "0");
-  const src = `${IMG_FOLDER}${num}${IMG_EXT}`;
-  const img = new Image();
-
-  img.onload = () => {
-    pages.push({ type: "image", src });
-    status.text(`${num}${IMG_EXT}`);
-    loadRange(current + 1, max, onDone);
-  };
-
-  img.onerror = () => {
-    // buco → salta silenziosamente
-    loadRange(current + 1, max, onDone);
-  };
-
-  img.src = src;
-}
-
-/* ── COSTRUZIONE E AVVIO FLIPBOOK ── */
-function initBook() {
-  if (done) return;
-  done = true;
-
-  const imageCount = pages.filter(p => p.type === "image").length;
-
-  if (imageCount === 0) {
-    status.text("Nessuna immagine trovata.");
-    return;
-  }
-
-  status.text("");
-
-  const W = window.innerWidth  * 0.9;
-  const H = window.innerHeight * 0.9;
-
-  /* Copertina */
-  book.append(`
-    <div class="page cover">
-      <img src="images/copertina.png" alt="Copertina">
-    </div>
-  `);
-
-  /* Pagine */
-  pages.forEach(p => {
-    if (p.type === "section") {
-      book.append(`
-        <div class="page">
-          <div class="page-section">
-            <div class="section-divider"></div>
-            <div class="section-title">${p.name}</div>
-            <div class="section-divider"></div>
-          </div>
-        </div>
-      `);
-    } else {
-      book.append(`
-        <div class="page">
-          <img src="${p.src}" alt="">
-        </div>
-      `);
-    }
-  });
-
-  /* Ultima pagina */
-  book.append(`
-    <div class="page">
-      <div class="page-section">
-        <div class="section-divider"></div>
-        <div class="section-title" style="font-size:1.2rem;">Fine del tomo</div>
-        <div class="section-divider"></div>
-      </div>
-    </div>
-  `);
-
-  /* Inizializza turn.js */
-  book.css({ width: W, height: H }).fadeIn(800);
-
-  book.turn({
-    width:      W,
-    height:     H,
-    autoCenter: true,
-    display:    "double",
-    elevation:  80,
-    gradients:  true,
-    when: {
-      turning() {
-        const s = document.getElementById("flipSound");
-        s.currentTime = 0;
-        s.play().catch(() => {});
-      }
-    }
-  });
-
-  /* Navigazione tastiera */
-  $(document).on("keydown", e => {
-    if (e.key === "ArrowRight" || e.key === "PageDown") book.turn("next");
-    if (e.key === "ArrowLeft"  || e.key === "PageUp")  book.turn("previous");
-  });
-}
-
-/* ── RESIZE ── */
-$(window).on("resize", () => {
-  if (!book.data("turn")) return;
-  book.turn("size", window.innerWidth * 0.9, window.innerHeight * 0.9);
-});
-</script>
-</body>
-</html>
+    b
