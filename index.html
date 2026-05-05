@@ -183,22 +183,25 @@ function loadRange(current, max, onDone) {
 }
 
 function calcDimensions() {
-  const screenW = window.innerWidth  * 0.9;
-  const screenH = window.innerHeight * 0.9;
+  const screenW = window.innerWidth  * 0.88;
+  const screenH = window.innerHeight * 0.88;
 
-  /* se non abbiamo dati sulle immagini usa proporzione standard */
   const pageRatio = maxImgW > 0 ? maxImgW / maxImgH : 0.75;
 
   let pageH = screenH;
   let pageW = pageH * pageRatio;
 
-  /* se le due pagine affiancate superano la larghezza schermo, riscala */
   if (pageW * 2 > screenW) {
     pageW = screenW / 2;
     pageH = pageW / pageRatio;
   }
 
-  return { W: pageW * 2, H: pageH };
+  if (pageH > screenH) {
+    pageH = screenH;
+    pageW = pageH * pageRatio;
+  }
+
+  return { W: Math.floor(pageW * 2), H: Math.floor(pageH) };
 }
 
 function buildBook() {
@@ -213,14 +216,12 @@ function buildBook() {
 
   status.text("Preparazione libro...");
 
-  /* Copertina */
   book.append(`
     <div class="page cover">
       <img src="images/copertina.png" alt="Copertina">
     </div>
   `);
 
-  /* Pagine */
   pages.forEach(p => {
     if (p.type === "section") {
       book.append(`
@@ -247,7 +248,6 @@ function buildBook() {
     }
   });
 
-  /* Ultima pagina */
   book.append(`
     <div class="page">
       <div class="page-section">
