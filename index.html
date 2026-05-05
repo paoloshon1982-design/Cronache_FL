@@ -43,6 +43,35 @@ body {
 }
 .page img { max-width: 95%; max-height: 95%; object-fit: contain; }
 .cover img { object-fit: cover; width: 100%; height: 100%; }
+.page-section {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+.section-label {
+  color: #cbb78f;
+  font-family: 'IM Fell English', serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+.section-title {
+  color: #cbb78f;
+  font-family: 'IM Fell English', serif;
+  font-size: 2rem;
+  text-align: center;
+}
+.section-divider {
+  width: 60px;
+  height: 1px;
+  background: #cbb78f;
+  opacity: 0.4;
+}
 #status {
   position: fixed;
   bottom: 20px;
@@ -67,51 +96,62 @@ body {
 <audio id="flipSound" src="audio/flip.mp3" preload="auto"></audio>
 
 <script>
-/* ── CONFIGURAZIONE ── */
-const MAX_PAGES   = 200;   // limite superiore di ricerca (alzalo se hai più pagine)
-const INTRO_DELAY = 2500;  // ms di intro
+/* ── CONFIGURAZIONE SEZIONI ── */
+const CHAPTERS = [
+  { name: "Gruppo",   from:   2, to:  15 },
+  { name: "Appunti",  from:  16, to:  40 },
+  { name: "Racconto", from:  41, to: 100 },
+  { name: "Studio",   from: 101, to: 140 },
+];
+
 const IMG_FOLDER  = "images/";
 const IMG_EXT     = ".webp";
+const INTRO_DELAY = 2500;
 
 /* ── STATO ── */
-const book    = $("#book");
-const status  = $("#status");
-let   pages   = [];
-let   loading = 0;
-let   done    = false;
+const book   = $("#book");
+const status = $("#status");
+let   pages  = [];
+let   done   = false;
 
 /* ── AVVIO ── */
 setTimeout(() => {
-  $("#intro").fadeOut(1000, () => {
-    startBook();
-  });
+  $("#intro").fadeOut(1000, () => startBook());
 }, INTRO_DELAY);
 
 function startBook() {
-  status.text("Caricamento pagine...");
-  loadSequential(1);
+  status.text("Caricamento in corso...");
+  loadAllChapters(0);
 }
 
-/* ── CARICAMENTO SEQUENZIALE ── */
-// Carica le immagini una alla volta in ordine.
-// Appena una manca, avvia il libro con quelle trovate.
-function loadSequential(i) {
-  if (i > MAX_PAGES) { initBook(); return; }
+/* ── CARICAMENTO CAPITOLI IN SEQUENZA ── */
+function loadAllChapters(idx) {
+  if (idx >= CHAPTERS.length) {
+    initBook();
+    return;
+  }
+  const ch = CHAPTERS[idx];
+  // inserisce pagina di separazione sezione
+  pages.push({ type: "section", name: ch.name });
+  loadRange(ch.from, ch.to, () => loadAllChapters(idx + 1));
+}
 
-  const num = String(i).padStart(2, "0");
+function loadRange(current, max, onDone) {
+  if (current > max) { onDone(); return; }
+
+  const num = String(current).padStart(2, "0");
   const src = `${IMG_FOLDER}${num}${IMG_EXT}`;
-
   const img = new Image();
 
   img.onload = () => {
-    pages.push(src);
-    status.text(`Caricata pagina ${i}...`);
-    loadSequential(i + 1);   // prova la successiva
+    pages.push({ type: "image", src });
+    status.text(`${num}${IMG_EXT}`);
+    loadRange(current + 1, max, onDone);
   };
 
   img.onerror = () => {
-    // Immagine non trovata: si ferma qui
-    initBook();
+    // buco → salta silenziosamente
+    loadRange(current + 1, max, onDone);
   };
 
   img.src = src;
@@ -122,7 +162,9 @@ function initBook() {
   if (done) return;
   done = true;
 
-  if (pages.length === 0) {
+  const imageCount = pages.filter(p => p.type === "image").length;
+
+  if (imageCount === 0) {
     status.text("Nessuna immagine trovata.");
     return;
   }
@@ -139,21 +181,35 @@ function initBook() {
     </div>
   `);
 
-  /* Pagine interne */
-  pages.forEach((src, idx) => {
-    book.append(`
-      <div class="page">
-        <img src="${src}" alt="Pagina ${idx + 1}">
-      </div>
-    `);
+  /* Pagine */
+  pages.forEach(p => {
+    if (p.type === "section") {
+      book.append(`
+        <div class="page">
+          <div class="page-section">
+            <div class="section-divider"></div>
+            <div class="section-title">${p.name}</div>
+            <div class="section-divider"></div>
+          </div>
+        </div>
+      `);
+    } else {
+      book.append(`
+        <div class="page">
+          <img src="${p.src}" alt="">
+        </div>
+      `);
+    }
   });
 
   /* Ultima pagina */
   book.append(`
-    <div class="page" style="justify-content:center; align-items:center;">
-      <p style="color:#cbb78f; font-family:'IM Fell English',serif; font-size:1.4rem; text-align:center;">
-        Fine del tomo
-      </p>
+    <div class="page">
+      <div class="page-section">
+        <div class="section-divider"></div>
+        <div class="section-title" style="font-size:1.2rem;">Fine del tomo</div>
+        <div class="section-divider"></div>
+      </div>
     </div>
   `);
 
@@ -186,9 +242,7 @@ function initBook() {
 /* ── RESIZE ── */
 $(window).on("resize", () => {
   if (!book.data("turn")) return;
-  const W = window.innerWidth  * 0.9;
-  const H = window.innerHeight * 0.9;
-  book.turn("size", W, H);
+  book.turn("size", window.innerWidth * 0.9, window.innerHeight * 0.9);
 });
 </script>
 </body>
