@@ -3,174 +3,193 @@
 <head>
 <meta charset="UTF-8">
 <title>Cronache del mondo, del vento e del corvo</title>
-
 <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English&display=swap" rel="stylesheet">
-
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/turn.js/4.1.0/turn.min.js"></script>
-
 <style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  margin: 0;
   background: radial-gradient(circle, #1a1a1a, #000);
   overflow: hidden;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
-
-/* INTRO */
 #intro {
   position: fixed;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   background: black;
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 10;
 }
-
 #intro img {
   width: 300px;
   animation: fadeIn 2s forwards;
 }
-
 @keyframes fadeIn {
   from { opacity: 0; transform: scale(0.9); }
-  to { opacity: 1; transform: scale(1); }
+  to   { opacity: 1; transform: scale(1); }
 }
-
-/* LIBRO */
-#book {
-  width: 90vw;
-  height: 90vh;
-  margin: auto;
-  display: none;
-}
-
-/* PAGINE */
+#book { display: none; }
 .page {
-  background: url("textures/parchment.jpg");
-  background-size: cover;
+  background: url("textures/parchment.jpg") center/cover;
   box-shadow: inset 0 0 60px rgba(0,0,0,0.9);
   display: flex;
   justify-content: center;
   align-items: center;
 }
-
-.page img {
-  max-width: 95%;
-  max-height: 95%;
-  object-fit: contain;
-}
-
-/* COPERTINA */
-.cover img {
-  object-fit: cover;
+.page img { max-width: 95%; max-height: 95%; object-fit: contain; }
+.cover img { object-fit: cover; width: 100%; height: 100%; }
+#status {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #cbb78f;
+  font-family: 'IM Fell English', serif;
+  font-size: 14px;
+  opacity: 0.7;
+  pointer-events: none;
 }
 </style>
 </head>
-
 <body>
 
-<!-- INTRO -->
 <div id="intro">
-  <img src="images/copertina.jpg">
+  <img src="images/copertina.png" alt="Copertina">
 </div>
 
 <div id="book"></div>
-<audio id="flipSound" src="audio/flip.mp3"></audio>
+<div id="status"></div>
+<audio id="flipSound" src="audio/flip.mp3" preload="auto"></audio>
 
 <script>
-const book = $("#book");
-const MAX_PAGES = 100;
+/* ── CONFIGURAZIONE ── */
+const MAX_PAGES   = 200;   // limite superiore di ricerca (alzalo se hai più pagine)
+const INTRO_DELAY = 2500;  // ms di intro
+const IMG_FOLDER  = "images/";
+const IMG_EXT     = ".webp";
 
-/* AVVIO INTRO */
+/* ── STATO ── */
+const book    = $("#book");
+const status  = $("#status");
+let   pages   = [];
+let   loading = 0;
+let   done    = false;
+
+/* ── AVVIO ── */
 setTimeout(() => {
   $("#intro").fadeOut(1000, () => {
-    $("#book").fadeIn(1000);
     startBook();
   });
-}, 2500);
+}, INTRO_DELAY);
 
-/* COSTRUZIONE LIBRO */
 function startBook() {
+  status.text("Caricamento pagine...");
+  loadSequential(1);
+}
 
-  /* COPERTINA */
+/* ── CARICAMENTO SEQUENZIALE ── */
+// Carica le immagini una alla volta in ordine.
+// Appena una manca, avvia il libro con quelle trovate.
+function loadSequential(i) {
+  if (i > MAX_PAGES) { initBook(); return; }
+
+  const num = String(i).padStart(2, "0");
+  const src = `${IMG_FOLDER}${num}${IMG_EXT}`;
+
+  const img = new Image();
+
+  img.onload = () => {
+    pages.push(src);
+    status.text(`Caricata pagina ${i}...`);
+    loadSequential(i + 1);   // prova la successiva
+  };
+
+  img.onerror = () => {
+    // Immagine non trovata: si ferma qui
+    initBook();
+  };
+
+  img.src = src;
+}
+
+/* ── COSTRUZIONE E AVVIO FLIPBOOK ── */
+function initBook() {
+  if (done) return;
+  done = true;
+
+  if (pages.length === 0) {
+    status.text("Nessuna immagine trovata.");
+    return;
+  }
+
+  status.text("");
+
+  const W = window.innerWidth  * 0.9;
+  const H = window.innerHeight * 0.9;
+
+  /* Copertina */
   book.append(`
     <div class="page cover">
-      <img src="images/copertina.jpg">
+      <img src="images/copertina.png" alt="Copertina">
     </div>
   `);
 
-  loadImages();
-}
-
-/* CARICAMENTO IMMAGINI */
-let pagesLoaded = 0;
-
-function loadImages() {
-  for (let i = 1; i <= MAX_PAGES; i++) {
-
-    const num = String(i).padStart(2, '0');
-    const src = `images/${num}.webp`; // 🔥 GIÀ CORRETTO
-
-    const img = new Image();
-
-    img.onload = () => {
-      addPage(src);
-      pagesLoaded++;
-    };
-
-    img.onerror = () => {
-      // quando non trova più immagini, avvia il libro
-      if (pagesLoaded > 0) initBook();
-    };
-
-    img.src = src;
-  }
-}
-
-/* AGGIUNTA PAGINA */
-function addPage(src) {
-  const page = $("<div class='page' />");
-  const img = $("<img>").attr("src", src);
-
-  page.append(img);
-  book.append(page);
-}
-
-/* AVVIO FLIPBOOK */
-function initBook() {
-
-  book.append(`
-    <div class="page">
-      <div style="color:#cbb78f; font-family:IM Fell English;">
-        Fine del tomo
+  /* Pagine interne */
+  pages.forEach((src, idx) => {
+    book.append(`
+      <div class="page">
+        <img src="${src}" alt="Pagina ${idx + 1}">
       </div>
+    `);
+  });
+
+  /* Ultima pagina */
+  book.append(`
+    <div class="page" style="justify-content:center; align-items:center;">
+      <p style="color:#cbb78f; font-family:'IM Fell English',serif; font-size:1.4rem; text-align:center;">
+        Fine del tomo
+      </p>
     </div>
   `);
 
-  $("#book").turn({
-    width: window.innerWidth * 0.9,
-    height: window.innerHeight * 0.9,
+  /* Inizializza turn.js */
+  book.css({ width: W, height: H }).fadeIn(800);
+
+  book.turn({
+    width:      W,
+    height:     H,
     autoCenter: true,
-    display: "double",
-    elevation: 80,
-    gradients: true,
+    display:    "double",
+    elevation:  80,
+    gradients:  true,
     when: {
-      turning: function() {
-        document.getElementById("flipSound").play();
+      turning() {
+        const s = document.getElementById("flipSound");
+        s.currentTime = 0;
+        s.play().catch(() => {});
       }
     }
   });
+
+  /* Navigazione tastiera */
+  $(document).on("keydown", e => {
+    if (e.key === "ArrowRight" || e.key === "PageDown") book.turn("next");
+    if (e.key === "ArrowLeft"  || e.key === "PageUp")  book.turn("previous");
+  });
 }
 
-/* RESPONSIVE */
-$(window).resize(() => {
-  if ($("#book").data("turn")) {
-    $("#book").turn("size", window.innerWidth * 0.9, window.innerHeight * 0.9);
-  }
+/* ── RESIZE ── */
+$(window).on("resize", () => {
+  if (!book.data("turn")) return;
+  const W = window.innerWidth  * 0.9;
+  const H = window.innerHeight * 0.9;
+  book.turn("size", W, H);
 });
 </script>
-
 </body>
 </html>
