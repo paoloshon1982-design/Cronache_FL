@@ -30,18 +30,12 @@ body {
 
 #intro img {
   width: 300px;
-  transform: scale(0.8);
-  opacity: 0;
-  animation: fadeIn 2s forwards, pulse 4s infinite;
+  animation: fadeIn 2s forwards;
 }
 
 @keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.9); }
   to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes pulse {
-  0%,100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
 }
 
 /* LIBRO */
@@ -63,27 +57,14 @@ body {
 }
 
 .page img {
-  max-width: 100%;
-  max-height: 100%;
+  max-width: 95%;
+  max-height: 95%;
   object-fit: contain;
 }
 
 /* COPERTINA */
 .cover img {
   object-fit: cover;
-}
-
-/* SIMBOLO */
-.symbol {
-  position: absolute;
-  bottom: 20px;
-  opacity: 0.7;
-  animation: float 6s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%,100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
 }
 </style>
 </head>
@@ -100,15 +81,15 @@ body {
 
 <script>
 const book = $("#book");
-const MAX_PAGES = 50;
+const MAX_PAGES = 100;
 
-/* INTRO → AVVIO */
+/* AVVIO INTRO */
 setTimeout(() => {
   $("#intro").fadeOut(1000, () => {
     $("#book").fadeIn(1000);
     startBook();
   });
-}, 3000);
+}, 2500);
 
 /* COSTRUZIONE LIBRO */
 function startBook() {
@@ -123,23 +104,25 @@ function startBook() {
   loadImages();
 }
 
-/* LOAD IMMAGINI */
-let loaded = 0;
+/* CARICAMENTO IMMAGINI */
+let pagesLoaded = 0;
 
 function loadImages() {
   for (let i = 1; i <= MAX_PAGES; i++) {
+
     const num = String(i).padStart(2, '0');
-    const src = `images/${num}.jpg`;
+    const src = `images/${num}.webp`; // 🔥 GIÀ CORRETTO
 
     const img = new Image();
 
     img.onload = () => {
       addPage(src);
-      loaded++;
+      pagesLoaded++;
     };
 
     img.onerror = () => {
-      if (loaded > 0) initBook();
+      // quando non trova più immagini, avvia il libro
+      if (pagesLoaded > 0) initBook();
     };
 
     img.src = src;
@@ -152,20 +135,17 @@ function addPage(src) {
   const img = $("<img>").attr("src", src);
 
   page.append(img);
-
-  /* simbolo animato leggero */
-  const symbol = $("<div class='symbol'>🪶</div>");
-  page.append(symbol);
-
   book.append(page);
 }
 
-/* INIT */
+/* AVVIO FLIPBOOK */
 function initBook() {
 
   book.append(`
     <div class="page">
-      <div style="color:#cbb78f; font-family:IM Fell English;">Fine del tomo</div>
+      <div style="color:#cbb78f; font-family:IM Fell English;">
+        Fine del tomo
+      </div>
     </div>
   `);
 
