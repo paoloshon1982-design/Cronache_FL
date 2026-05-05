@@ -16,11 +16,40 @@ body {
   overflow: hidden;
 }
 
+/* INTRO */
+#intro {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  background: black;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+}
+
+#intro img {
+  width: 300px;
+  transform: scale(0.8);
+  opacity: 0;
+  animation: fadeIn 2s forwards, pulse 4s infinite;
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse {
+  0%,100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
 /* LIBRO */
 #book {
   width: 90vw;
   height: 90vh;
   margin: auto;
+  display: none;
 }
 
 /* PAGINE */
@@ -28,70 +57,74 @@ body {
   background: url("textures/parchment.jpg");
   background-size: cover;
   box-shadow: inset 0 0 60px rgba(0,0,0,0.9);
-  border: 1px solid rgba(80,60,30,0.6);
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-/* IMMAGINI */
 .page img {
-  max-width: 95%;
-  max-height: 95%;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
-  opacity: 0;
-  transition: opacity 0.5s ease;
-}
-
-.page img.loaded {
-  opacity: 1;
-}
-
-/* INCISIONE PROFONDA */
-.engraved-deep {
-  font-family: 'IM Fell English', serif;
-  font-size: 2.6em;
-  color: #2a1a10;
-  letter-spacing: 2px;
-  text-align: center;
-
-  text-shadow:
-    3px 3px 2px rgba(0,0,0,0.95),
-    -1px -1px 1px rgba(255,220,150,0.05);
-
-  transform: rotate(-0.8deg);
 }
 
 /* COPERTINA */
-.cover {
-  background: #1b120b;
+.cover img {
+  object-fit: cover;
+}
+
+/* SIMBOLO */
+.symbol {
+  position: absolute;
+  bottom: 20px;
+  opacity: 0.7;
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
 }
 </style>
 </head>
 
 <body>
 
+<!-- INTRO -->
+<div id="intro">
+  <img src="images/copertina.jpg">
+</div>
+
 <div id="book"></div>
 <audio id="flipSound" src="audio/flip.mp3"></audio>
 
 <script>
-
-/* ===== CONFIG ===== */
-const MAX_PAGES = 50; // puoi aumentarlo quanto vuoi
-
 const book = $("#book");
+const MAX_PAGES = 50;
 
-/* ===== COPERTINA ===== */
-book.append(`
-  <div class="page cover">
-    <div class="engraved-deep">
-      ${wrapText("Cronache del mondo, del vento e del corvo")}
+/* INTRO → AVVIO */
+setTimeout(() => {
+  $("#intro").fadeOut(1000, () => {
+    $("#book").fadeIn(1000);
+    startBook();
+  });
+}, 3000);
+
+/* COSTRUZIONE LIBRO */
+function startBook() {
+
+  /* COPERTINA */
+  book.append(`
+    <div class="page cover">
+      <img src="images/copertina.jpg">
     </div>
-  </div>
-`);
+  `);
 
-/* ===== CARICAMENTO AUTOMATICO IMMAGINI ===== */
-let loadedImages = 0;
+  loadImages();
+}
+
+/* LOAD IMMAGINI */
+let loaded = 0;
 
 function loadImages() {
   for (let i = 1; i <= MAX_PAGES; i++) {
@@ -100,38 +133,39 @@ function loadImages() {
 
     const img = new Image();
 
-    img.onload = function() {
+    img.onload = () => {
       addPage(src);
-      loadedImages++;
+      loaded++;
     };
 
-    img.onerror = function() {
-      // smette quando non trova più immagini
-      if (loadedImages > 0) initBook();
+    img.onerror = () => {
+      if (loaded > 0) initBook();
     };
 
     img.src = src;
   }
 }
 
-/* ===== AGGIUNTA PAGINA ===== */
+/* AGGIUNTA PAGINA */
 function addPage(src) {
   const page = $("<div class='page' />");
-  const img = $("<img />").attr("src", src);
-
-  img.on("load", function() {
-    $(this).addClass("loaded");
-  });
+  const img = $("<img>").attr("src", src);
 
   page.append(img);
+
+  /* simbolo animato leggero */
+  const symbol = $("<div class='symbol'>🪶</div>");
+  page.append(symbol);
+
   book.append(page);
 }
 
-/* ===== INIZIALIZZA LIBRO ===== */
+/* INIT */
 function initBook() {
+
   book.append(`
     <div class="page">
-      <div class="engraved-deep">Fine del tomo</div>
+      <div style="color:#cbb78f; font-family:IM Fell English;">Fine del tomo</div>
     </div>
   `);
 
@@ -150,21 +184,12 @@ function initBook() {
   });
 }
 
-/* ===== UTIL ===== */
-function wrapText(text) {
-  return text.split("").map(l => `<span>${l}</span>`).join("");
-}
-
-/* START */
-loadImages();
-
 /* RESPONSIVE */
-$(window).resize(function() {
+$(window).resize(() => {
   if ($("#book").data("turn")) {
     $("#book").turn("size", window.innerWidth * 0.9, window.innerHeight * 0.9);
   }
 });
-
 </script>
 
 </body>
