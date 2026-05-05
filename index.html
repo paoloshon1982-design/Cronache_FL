@@ -33,7 +33,7 @@ body {
   from { opacity: 0; transform: scale(0.9); }
   to   { opacity: 1; transform: scale(1); }
 }
-#book { display: none; }
+#book { display: block; visibility: hidden; position: absolute; }
 .page {
   background: url("textures/parchment.jpg") center/cover;
   box-shadow: inset 0 0 60px rgba(0,0,0,0.9);
@@ -76,7 +76,6 @@ body {
   pointer-events: none;
   z-index: 100;
 }
-/* FRECCE NAVIGAZIONE */
 #nav-prev, #nav-next {
   position: fixed;
   top: 50%;
@@ -117,7 +116,6 @@ body {
 <audio id="flipSound" src="audio/flip.mp3" preload="auto"></audio>
 
 <script>
-/* ── CONFIGURAZIONE ── */
 const CHAPTERS = [
   { name: "Gruppo",   from:   2, to:  15 },
   { name: "Appunti",  from:  16, to:  40 },
@@ -129,13 +127,11 @@ const IMG_FOLDER  = "images/";
 const IMG_EXT     = ".webp";
 const INTRO_DELAY = 2500;
 
-/* ── STATO ── */
 const book   = $("#book");
 const status = $("#status");
 let   pages  = [];
 let   done   = false;
 
-/* ── AVVIO ── */
 setTimeout(() => {
   $("#intro").fadeOut(1000, () => startBook());
 }, INTRO_DELAY);
@@ -145,7 +141,119 @@ function startBook() {
   loadAllChapters(0);
 }
 
-/* ── CARICAMENTO ── */
 function loadAllChapters(idx) {
   if (idx >= CHAPTERS.length) {
-    b
+    buildBook();
+    return;
+  }
+  const ch = CHAPTERS[idx];
+  pages.push({ type: "section", name: ch.name });
+  loadRange(ch.from, ch.to, () => loadAllChapters(idx + 1));
+}
+
+function loadRange(current, max, onDone) {
+  if (current > max) { onDone(); return; }
+  const num = String(current).padStart(2, "0");
+  const src = `${IMG_FOLDER}${num}${IMG_EXT}`;
+  const img = new Image();
+  img.onload = () => {
+    pages.push({ type: "image", src });
+    status.text(`Caricamento: ${num}${IMG_EXT}`);
+    loadRange(current + 1, max, onDone);
+  };
+  img.onerror = () => {
+    loadRange(current + 1, max, onDone);
+  };
+  img.src = src;
+}
+
+function buildBook() {
+  if (done) return;
+  done = true;
+
+  const imageCount = pages.filter(p => p.type === "image").length;
+  if (imageCount === 0) {
+    status.text("Nessuna immagine trovata.");
+    return;
+  }
+
+  status.text("Preparazione libro...");
+
+  book.append(`
+    <div class="page cover">
+      <img src="images/copertina.png" alt="Copertina">
+    </div>
+  `);
+
+  pages.forEach(p => {
+    if (p.type === "section") {
+      book.append(`
+        <div class="page">
+          <div class="page-section">
+            <div class="section-divider"></div>
+            <div class="section-title">${p.name}</div>
+            <div class="section-divider"></div>
+          </div>
+        </div>
+      `);
+    } else {
+      book.append(`
+        <div class="page">
+          <img src="${p.src}" alt="">
+        </div>
+      `);
+    }
+  });
+
+  book.append(`
+    <div class="page">
+      <div class="page-section">
+        <div class="section-divider"></div>
+        <div class="section-title" style="font-size:1.2rem;">Fine del tomo</div>
+        <div class="section-divider"></div>
+      </div>
+    </div>
+  `);
+
+  /* turn.js vuole dimensioni reali — prima rendiamo visibile il book */
+  const W = window.innerWidth  * 0.9;
+  const H = window.innerHeight * 0.9;
+  book.css({ width: W, height: H, visibility: "visible", position: "relative" });
+
+  setTimeout(() => {
+    book.turn({
+      width:      W,
+      height:     H,
+      autoCenter: true,
+      display:    "double",
+      elevation:  80,
+      gradients:  true,
+      when: {
+        turning() {
+          const s = document.getElementById("flipSound");
+          s.currentTime = 0;
+          s.play().catch(() => {});
+        }
+      }
+    });
+
+    status.text("");
+    $("#nav-prev, #nav-next").css("display", "flex");
+    $("#nav-prev").on("click", () => book.turn("previous"));
+    $("#nav-next").on("click", () => book.turn("next"));
+
+    $(document).on("keydown", e => {
+      if (e.key === "ArrowRight" || e.key === "PageDown") book.turn("next");
+      if (e.key === "ArrowLeft"  || e.key === "PageUp")  book.turn("previous");
+    });
+
+  }, 500);
+}
+
+$(window).on("resize", () => {
+  if (!book.data("turn")) return;
+  book.turn("size", window.innerWidth * 0.9, window.innerHeight * 0.9);
+});
+</script>
+</body>
+</html>
